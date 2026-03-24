@@ -1,11 +1,8 @@
 using UnityEngine;
 using ScapeRoom.Interaction;
 
-public class InteractableCube : BaseInteractable
+public class InteractableCube : BasePickable
 {
 
-    public override void Interact()
-    {
-        this.gameObject.SetActive(false);
-    }
+
 }

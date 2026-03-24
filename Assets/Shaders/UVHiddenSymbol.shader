@@ -3,7 +3,10 @@ Shader "ScapeRoom/UVHiddenSymbol"
     Properties
     {
         _MainTex ("Hidden Texture", 2D) = "white" {}
-        _Color ("Tint Color", Color) = (1,1,1,1)
+        [HDR] _Color ("Tint Color", Color) = (1,1,1,1)
+        [HDR] _EmissionColor ("Emission Color", Color) = (0,0,0,0)
+        _Softness ("Angle Fade Softness", Range(0.001, 1.0)) = 0.5
+        _DistanceSoftness ("Distance Fade Softness", Range(0.001, 1.0)) = 0.5
         
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src Blend", Float) = 5 // SrcAlpha
         [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst Blend", Float) = 10 // OneMinusSrcAlpha
@@ -42,6 +45,9 @@ Shader "ScapeRoom/UVHiddenSymbol"
             sampler2D _MainTex;
             float4 _MainTex_ST;
             float4 _Color;
+            float4 _EmissionColor;
+            float _Softness;
+            float _DistanceSoftness;
 
             // Global Variables from UVLightController
             float4 _UVLightPosition;
@@ -60,6 +66,7 @@ Shader "ScapeRoom/UVHiddenSymbol"
             fixed4 frag (v2f i) : SV_Target
             {
                 fixed4 col = tex2D(_MainTex, i.uv) * _Color;
+                col.rgb += _EmissionColor.rgb;
 
                 float isOn = _UVLightParameters.z;
                 if (isOn < 0.5) 
@@ -93,7 +100,7 @@ Shader "ScapeRoom/UVHiddenSymbol"
                 float intensityDist = 1.0 - (dist / range);
                 float intensityAngle = (dotProd - angleCos) / (1.0 - angleCos);
                 
-                col.a *= smoothstep(0, 1, intensityDist) * smoothstep(0, 1, intensityAngle);
+                col.a *= smoothstep(0, _DistanceSoftness, intensityDist) * smoothstep(0, _Softness, intensityAngle);
                 
                 // Discard pixel if alpha is nearly zero to fix URP always rendering issues
                 clip(col.a - 0.01);

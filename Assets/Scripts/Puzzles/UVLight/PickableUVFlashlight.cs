@@ -1,17 +1,11 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using ScapeRoom.Interaction;
 
 namespace ScapeRoom.Puzzles.UVLight
 {
     [RequireComponent(typeof(UVLightController))]
-    public class PickableUVFlashlight : BaseInteractable
+    public class PickableUVFlashlight : BasePickable, IUsable
     {
-        [Header("Flashlight Settings")]
-        [SerializeField] private Transform _equipTransform;
-        [SerializeField] private Vector3 _equipLocalPosition;
-        [SerializeField] private Vector3 _equipLocalRotation;
-        
         [Header("Aiming Settings")]
         [Tooltip("Si se asigna, la linterna apuntará siempre hacia donde mire esta cámara")]
         [SerializeField] private Transform _playerCamera;
@@ -26,16 +20,15 @@ namespace ScapeRoom.Puzzles.UVLight
         [SerializeField] private Light _unitySpotLight;
 
         private UVLightController _uvLightController;
-        private bool _isEquipped = false;
-        private Rigidbody _rb;
-        private Collider _col;
 
         protected override void Awake()
         {
             base.Awake();
             _uvLightController = GetComponent<UVLightController>();
-            _rb = GetComponent<Rigidbody>();
-            _col = GetComponent<Collider>();
+
+            // Auto-assign the camera so the flashlight always aims at screen centre
+            if (_playerCamera == null && Camera.main != null)
+                _playerCamera = Camera.main.transform;
 
             SyncLights();
         }
@@ -64,69 +57,12 @@ namespace ScapeRoom.Puzzles.UVLight
             }
         }
 
-        public override void Interact()
-        {
-            if (!_isEquipped)
-            {
-                Equip();
-            }
-        }
-
-        private void Equip()
-        {
-            if (_equipTransform == null) return;
-
-            _isEquipped = true;
-            
-            // Desactivar físicas al equipar
-            if (_rb != null) _rb.isKinematic = true;
-            if (_col != null) _col.enabled = false;
-
-            transform.SetParent(_equipTransform);
-            transform.localPosition = _equipLocalPosition;
-            if (!_followCameraAim || _playerCamera == null)
-            {
-                transform.localRotation = Quaternion.Euler(_equipLocalRotation);
-            }
-        }
-
-        public void Drop()
-        {
-            if (!_isEquipped) return;
-
-            _isEquipped = false;
-            
-            // Reactivar físicas al soltar
-            if (_rb != null) _rb.isKinematic = false;
-            if (_col != null) _col.enabled = true;
-
-            transform.SetParent(null);
-            // La linterna se queda en el entorno. Si estaba encendida, se quedará iluminando el suelo, ideal para puzles.
-        }
-
-        public void OnDropFlashlight(InputValue value)
-        {
-            if (value.isPressed)
-            {
-                Drop();
-            }
-        }
-
-        // Action compatible con Unity New Input System o Unity Events
-        public void ToggleLight()
+        public void Use()
         {
             if (!_isEquipped) return;
             
             _uvLightController.SetState(!_uvLightController.IsOn);
             SyncLights();
-        }
-
-        public void OnToggleFlashlight(InputValue value)
-        {
-            if (value.isPressed)
-            {
-                ToggleLight();
-            }
         }
 
         private void SyncLights()
